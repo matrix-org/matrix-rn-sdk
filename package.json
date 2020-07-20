@@ -1,0 +1,20 @@
+{
+  "name": "matrix-rn-sdk",
+  "version": "0.0.1",
+  "description": "React Native wrapper for matrix-js-sdk",
+  "main": "src/index.js",
+  "license": "Apache-2.0",
+  "scripts": {
+    "test": "jest test",
+    "lint": "eslint src test"
+  },
+  "dependencies": {
+    "@react-native-community/async-storage": "^1.11.0",
+    "matrix-js-sdk": "^7.1.0"
+  },
+  "devDependencies": {
+    "eslint": "^7.4.0",
+    "eslint-config-matrix-org": "^0.1.1",
+    "jest": "^26.1.0"
+  }
+}

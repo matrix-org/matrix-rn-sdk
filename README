@@ -1,0 +1,8 @@
+matrix-rn-sdk
+=============
+
+A wrapper around matrix-js-sdk for React Native. Uses React Native Async Storage.
+
+Usage
+=====
+Use matrix-rn-sdk should be a drop-in replacement for matrix-js-sdk, but using an appropriate storage layer for React Native.
