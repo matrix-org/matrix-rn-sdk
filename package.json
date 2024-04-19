@@ -1,20 +1,44 @@
 {
-  "name": "matrix-rn-sdk",
-  "version": "0.0.1",
-  "description": "React Native wrapper for matrix-js-sdk",
-  "main": "src/index.js",
-  "license": "Apache-2.0",
-  "scripts": {
-    "test": "jest test",
-    "lint": "eslint src test"
-  },
-  "dependencies": {
-    "@react-native-community/async-storage": "^1.11.0",
-    "matrix-js-sdk": "^7.1.0"
-  },
-  "devDependencies": {
-    "eslint": "^7.4.0",
-    "eslint-config-matrix-org": "^0.1.1",
-    "jest": "^26.1.0"
-  }
+    "name": "matrix-rn-sdk",
+    "version": "0.0.1",
+    "description": "React Native wrapper for matrix-js-sdk",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "files": [
+        "/dist"
+    ],
+    "license": "Apache-2.0",
+    "scripts": {
+        "build": "yarn clean && tsc -p tsconfig-build.json",
+        "clean": "rm -rf dist",
+        "lint": "eslint src/** spec/** && tsc --noEmit && prettier --check .",
+        "test": "jest"
+    },
+    "dependencies": {
+        "@react-native-community/async-storage": "^1.11.0",
+        "matrix-js-sdk": "^32.0.0"
+    },
+    "devDependencies": {
+        "@babel/core": "^7.24.4",
+        "@babel/eslint-parser": "^7.24.1",
+        "@babel/eslint-plugin": "^7.23.5",
+        "@babel/preset-env": "^7.24.4",
+        "@babel/preset-typescript": "^7.24.1",
+        "@types/jest": "^29.5.12",
+        "@typescript-eslint/eslint-plugin": "^7.7.0",
+        "@typescript-eslint/parser": "^7.7.0",
+        "babel-cli": "^6.26.0",
+        "babel-jest": "^29.7.0",
+        "eslint": "8.57.0",
+        "eslint-config-google": "^0.14.0",
+        "eslint-config-prettier": "^9.1.0",
+        "eslint-import-resolver-typescript": "^3.6.1",
+        "eslint-plugin-import": "^2.29.1",
+        "eslint-plugin-jest": "^28.2.0",
+        "eslint-plugin-matrix-org": "^1.2.1",
+        "eslint-plugin-unicorn": "^52.0.0",
+        "jest": "^29.7.0",
+        "prettier": "^3.2.5",
+        "typescript": "^5.4.5"
+    }
 }
