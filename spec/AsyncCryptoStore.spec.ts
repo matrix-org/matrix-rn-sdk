@@ -14,8 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { IDeviceData } from "matrix-js-sdk/lib/crypto/store/base";
-
 import AsyncCryptoStore from "../src/AsyncCryptoStore";
 import MockAsyncStore from "./MockAsyncStore";
 

@@ -84,21 +84,21 @@ function keyParkedSharedHistory(roomId: string): string {
 
 class Transaction {
     private numOps = 0;
-    private error: any = null;
+    private error: unknown = null;
 
     private resolve: ((value: void | PromiseLike<void>) => void) | null = null;
-    private reject: ((reason?: any) => void) | null = null;
+    private reject: ((reason?: unknown) => void) | null = null;
 
     private promise = new Promise<void>((resolve, reject) => {
         this.resolve = resolve;
         this.reject = reject;
     });
 
-    getPromise(): Promise<void> {
+    public getPromise(): Promise<void> {
         return this.promise;
     }
 
-    async execute(func: () => Promise<void>) {
+    public async execute(func: () => Promise<void>): Promise<void> {
         this.onOperationStarted();
         try {
             await func();
@@ -109,14 +109,14 @@ class Transaction {
         }
     }
 
-    private onOperationStarted() {
+    private onOperationStarted(): void {
         if (this.resolve === null) {
             throw new Error("Tried to start a new operation on a completed transaction");
         }
         this.numOps += 1;
     }
 
-    private onOperationEnded() {
+    private onOperationEnded(): void {
         this.numOps -= 1;
         if (this.numOps === 0) {
             this.error ? this.reject?.(this.error) : this.resolve?.();
@@ -129,13 +129,13 @@ class Transaction {
 export default class AsyncCryptoStore implements CryptoStore {
     private initialized = false;
 
-    constructor(private storage: AsyncCryptoStorage) {}
+    public constructor(private storage: AsyncCryptoStorage) {}
 
-    async _getAllOutgoingKeyRequestKeys(): Promise<string[]> {
+    private async getAllOutgoingKeyRequestKeys(): Promise<string[]> {
         return (await this.storage.getAllKeys()).filter((k) => k.startsWith(OUTGOING_KEY_REQUEST_PREFIX));
     }
 
-    async _getJsonItem(key: string): Promise<any> {
+    private async getJsonItem(key: string): Promise<unknown> {
         const item = await this.storage.getItem(key);
         if (item === null) {
             return null;
@@ -143,48 +143,49 @@ export default class AsyncCryptoStore implements CryptoStore {
         return JSON.parse(item);
     }
 
-    async _setJsonItem(key: string, val: any): Promise<void> {
+    private async setJsonItem(key: string, val: unknown): Promise<void> {
         return this.storage.setItem(key, JSON.stringify(val));
     }
 
     // CryptoStore
 
-    async containsData(): Promise<boolean> {
+    public async containsData(): Promise<boolean> {
         return this.initialized;
     }
 
-    async startup(): Promise<CryptoStore> {
+    public async startup(): Promise<CryptoStore> {
         this.initialized = true;
         return this;
     }
 
-    async deleteAllData(): Promise<void> {
+    public async deleteAllData(): Promise<void> {
         const keys = (await this.storage.getAllKeys()).filter((k) => k.startsWith(E2E_PREFIX));
         for (const key of keys) {
             await this.storage.removeItem(key);
         }
     }
 
-    async getMigrationState(): Promise<MigrationState> {
-        return (await this._getJsonItem(KEY_END_TO_END_MIGRATION_STATE)) ?? MigrationState.NOT_STARTED;
+    public async getMigrationState(): Promise<MigrationState> {
+        return ((await this.getJsonItem(KEY_END_TO_END_MIGRATION_STATE)) ??
+            MigrationState.NOT_STARTED) as MigrationState;
     }
 
-    async setMigrationState(migrationState: MigrationState): Promise<void> {
-        await this._setJsonItem(KEY_END_TO_END_MIGRATION_STATE, migrationState);
+    public async setMigrationState(migrationState: MigrationState): Promise<void> {
+        await this.setJsonItem(KEY_END_TO_END_MIGRATION_STATE, migrationState);
     }
 
-    async getOrAddOutgoingRoomKeyRequest(request: OutgoingRoomKeyRequest): Promise<OutgoingRoomKeyRequest> {
+    public async getOrAddOutgoingRoomKeyRequest(request: OutgoingRoomKeyRequest): Promise<OutgoingRoomKeyRequest> {
         const req = await this.getOutgoingRoomKeyRequest(request.requestBody);
         if (req) {
             return req;
         }
-        await this._setJsonItem(keyOutgoingKeyRequest(request.requestId), request);
+        await this.setJsonItem(keyOutgoingKeyRequest(request.requestId), request);
         return request;
     }
 
-    async getOutgoingRoomKeyRequest(requestBody: IRoomKeyRequestBody): Promise<OutgoingRoomKeyRequest | null> {
-        for (const key of await this._getAllOutgoingKeyRequestKeys()) {
-            const req = (await this._getJsonItem(key)) as OutgoingRoomKeyRequest;
+    public async getOutgoingRoomKeyRequest(requestBody: IRoomKeyRequestBody): Promise<OutgoingRoomKeyRequest | null> {
+        for (const key of await this.getAllOutgoingKeyRequestKeys()) {
+            const req = (await this.getJsonItem(key)) as OutgoingRoomKeyRequest;
             if (
                 req.requestBody.room_id === requestBody.room_id &&
                 req.requestBody.session_id === requestBody.session_id
@@ -195,9 +196,9 @@ export default class AsyncCryptoStore implements CryptoStore {
         return null;
     }
 
-    async getOutgoingRoomKeyRequestByState(wantedStates: number[]): Promise<OutgoingRoomKeyRequest | null> {
-        for (const key of await this._getAllOutgoingKeyRequestKeys()) {
-            const req = (await this._getJsonItem(key)) as OutgoingRoomKeyRequest;
+    public async getOutgoingRoomKeyRequestByState(wantedStates: number[]): Promise<OutgoingRoomKeyRequest | null> {
+        for (const key of await this.getAllOutgoingKeyRequestKeys()) {
+            const req = (await this.getJsonItem(key)) as OutgoingRoomKeyRequest;
             if (wantedStates.includes(req.state)) {
                 return req;
             }
@@ -205,10 +206,10 @@ export default class AsyncCryptoStore implements CryptoStore {
         return null;
     }
 
-    async getAllOutgoingRoomKeyRequestsByState(wantedState: number): Promise<OutgoingRoomKeyRequest[]> {
+    public async getAllOutgoingRoomKeyRequestsByState(wantedState: number): Promise<OutgoingRoomKeyRequest[]> {
         const reqs: OutgoingRoomKeyRequest[] = [];
-        for (const key of await this._getAllOutgoingKeyRequestKeys()) {
-            const req = (await this._getJsonItem(key)) as OutgoingRoomKeyRequest;
+        for (const key of await this.getAllOutgoingKeyRequestKeys()) {
+            const req = (await this.getJsonItem(key)) as OutgoingRoomKeyRequest;
             if (req.state == wantedState) {
                 reqs.push(req);
             }
@@ -216,14 +217,14 @@ export default class AsyncCryptoStore implements CryptoStore {
         return reqs;
     }
 
-    async getOutgoingRoomKeyRequestsByTarget(
+    public async getOutgoingRoomKeyRequestsByTarget(
         userId: string,
         deviceId: string,
         wantedStates: number[],
     ): Promise<OutgoingRoomKeyRequest[]> {
         const reqs: OutgoingRoomKeyRequest[] = [];
-        for (const key of await this._getAllOutgoingKeyRequestKeys()) {
-            const req = (await this._getJsonItem(key)) as OutgoingRoomKeyRequest;
+        for (const key of await this.getAllOutgoingKeyRequestKeys()) {
+            const req = (await this.getJsonItem(key)) as OutgoingRoomKeyRequest;
             if (
                 wantedStates.includes(req.state) &&
                 req.recipients.some((r) => r.userId === userId && r.deviceId === deviceId)
@@ -234,30 +235,30 @@ export default class AsyncCryptoStore implements CryptoStore {
         return reqs;
     }
 
-    async updateOutgoingRoomKeyRequest(
+    public async updateOutgoingRoomKeyRequest(
         requestId: string,
         expectedState: number,
         updates: Partial<OutgoingRoomKeyRequest>,
     ): Promise<OutgoingRoomKeyRequest | null> {
         const key = keyOutgoingKeyRequest(requestId);
 
-        const req = (await this._getJsonItem(key)) as OutgoingRoomKeyRequest;
+        const req = (await this.getJsonItem(key)) as OutgoingRoomKeyRequest;
         if (!req || req.state !== expectedState) {
             return null;
         }
 
         Object.assign(req, updates);
-        await this._setJsonItem(key, req);
+        await this.setJsonItem(key, req);
         return req;
     }
 
-    async deleteOutgoingRoomKeyRequest(
+    public async deleteOutgoingRoomKeyRequest(
         requestId: string,
         expectedState: number,
     ): Promise<OutgoingRoomKeyRequest | null> {
         const key = keyOutgoingKeyRequest(requestId);
 
-        const req = (await this._getJsonItem(key)) as OutgoingRoomKeyRequest;
+        const req = (await this.getJsonItem(key)) as OutgoingRoomKeyRequest;
         if (!req || req.state !== expectedState) {
             return null;
         }
@@ -266,54 +267,54 @@ export default class AsyncCryptoStore implements CryptoStore {
         return req;
     }
 
-    getAccount(txn: unknown, func: (accountPickle: string | null) => void): void {
+    public getAccount(txn: unknown, func: (accountPickle: string | null) => void): void {
         (txn as Transaction).execute(async () => {
-            const accountPickle = await this._getJsonItem(KEY_END_TO_END_ACCOUNT);
+            const accountPickle = (await this.getJsonItem(KEY_END_TO_END_ACCOUNT)) as string | null;
             func(accountPickle);
         });
     }
 
-    storeAccount(txn: unknown, accountPickle: string): void {
+    public storeAccount(txn: unknown, accountPickle: string): void {
         (txn as Transaction).execute(async () => {
-            await this._setJsonItem(KEY_END_TO_END_ACCOUNT, accountPickle);
+            await this.setJsonItem(KEY_END_TO_END_ACCOUNT, accountPickle);
         });
     }
 
-    getCrossSigningKeys(txn: unknown, func: (keys: Record<string, CrossSigningKeyInfo> | null) => void): void {
+    public getCrossSigningKeys(txn: unknown, func: (keys: Record<string, CrossSigningKeyInfo> | null) => void): void {
         (txn as Transaction).execute(async () => {
-            const keys = await this._getJsonItem(KEY_CROSS_SIGNING_KEYS);
+            const keys = (await this.getJsonItem(KEY_CROSS_SIGNING_KEYS)) as Record<string, CrossSigningKeyInfo> | null;
             func(keys);
         });
     }
 
-    getSecretStorePrivateKey<K extends keyof SecretStorePrivateKeys>(
+    public getSecretStorePrivateKey<K extends keyof SecretStorePrivateKeys>(
         txn: unknown,
         func: (key: SecretStorePrivateKeys[K] | null) => void,
         type: K,
     ): void {
         (txn as Transaction).execute(async () => {
-            const key = await this._getJsonItem(keySecretStorePrivateKey(type));
+            const key = (await this.getJsonItem(keySecretStorePrivateKey(type))) as SecretStorePrivateKeys[K] | null;
             func(key);
         });
     }
 
-    storeCrossSigningKeys(txn: unknown, keys: Record<string, CrossSigningKeyInfo>): void {
+    public storeCrossSigningKeys(txn: unknown, keys: Record<string, CrossSigningKeyInfo>): void {
         (txn as Transaction).execute(async () => {
-            await this._setJsonItem(KEY_CROSS_SIGNING_KEYS, keys);
+            await this.setJsonItem(KEY_CROSS_SIGNING_KEYS, keys);
         });
     }
 
-    storeSecretStorePrivateKey<K extends keyof SecretStorePrivateKeys>(
+    public storeSecretStorePrivateKey<K extends keyof SecretStorePrivateKeys>(
         txn: unknown,
         type: K,
         key: SecretStorePrivateKeys[K],
     ): void {
         (txn as Transaction).execute(async () => {
-            await this._setJsonItem(keySecretStorePrivateKey(type), key);
+            await this.setJsonItem(keySecretStorePrivateKey(type), key);
         });
     }
 
-    countEndToEndSessions(txn: unknown, func: (count: number) => void): void {
+    public countEndToEndSessions(txn: unknown, func: (count: number) => void): void {
         (txn as Transaction).execute(async () => {
             const keys = await this.storage.getAllKeys();
             const count = keys.filter((k) => k.startsWith(END_TO_END_SESSION_PREFIX)).length;
@@ -321,19 +322,19 @@ export default class AsyncCryptoStore implements CryptoStore {
         });
     }
 
-    getEndToEndSession(
+    public getEndToEndSession(
         deviceKey: string,
         sessionId: string,
         txn: unknown,
         func: (session: ISessionInfo | null) => void,
     ): void {
         (txn as Transaction).execute(async () => {
-            const session = await this._getJsonItem(keyEndToEndSession(deviceKey, sessionId));
+            const session = (await this.getJsonItem(keyEndToEndSession(deviceKey, sessionId))) as ISessionInfo | null;
             func(session);
         });
     }
 
-    getEndToEndSessions(
+    public getEndToEndSessions(
         deviceKey: string,
         txn: unknown,
         func: (sessions: { [sessionId: string]: ISessionInfo }) => void,
@@ -341,46 +342,50 @@ export default class AsyncCryptoStore implements CryptoStore {
         (txn as Transaction).execute(async () => {
             const keys = await this.storage.getAllKeys();
             const prefix = prefixEndToEndSession(deviceKey);
-            const sessions = {};
+            const sessions: { [sessionId: string]: ISessionInfo } = {};
             for (const k of keys.filter((k) => k.startsWith(prefix))) {
                 const sessionId = decodeURIComponent(k.split("/")[2]);
                 // TODO: Can we not just use k directly here?
-                (sessions as any)[sessionId] = await this._getJsonItem(keyEndToEndSession(deviceKey, sessionId));
+                sessions[sessionId] = (await this.getJsonItem(
+                    keyEndToEndSession(deviceKey, sessionId),
+                )) as ISessionInfo;
             }
             func(sessions);
         });
     }
 
-    getAllEndToEndSessions(txn: unknown, func: (session: ISessionInfo | null) => void): void {
+    public getAllEndToEndSessions(txn: unknown, func: (session: ISessionInfo | null) => void): void {
         (txn as Transaction).execute(async () => {
             const keys = await this.storage.getAllKeys();
             for (const k of keys.filter((k) => k.startsWith(END_TO_END_SESSION_PREFIX))) {
                 const deviceKey = decodeURIComponent(k.split("/")[1]);
                 const sessionId = decodeURIComponent(k.split("/")[2]);
                 // TODO: Can we not just use k directly here?
-                const sessionInfo = await this._getJsonItem(keyEndToEndSession(deviceKey, sessionId));
+                const sessionInfo = (await this.getJsonItem(
+                    keyEndToEndSession(deviceKey, sessionId),
+                )) as ISessionInfo | null;
                 func(sessionInfo);
             }
         });
     }
 
-    storeEndToEndSession(deviceKey: string, sessionId: string, sessionInfo: ISessionInfo, txn: unknown): void {
+    public storeEndToEndSession(deviceKey: string, sessionId: string, sessionInfo: ISessionInfo, txn: unknown): void {
         (txn as Transaction).execute(async () => {
-            await this._setJsonItem(keyEndToEndSession(deviceKey, sessionId), sessionInfo);
+            await this.setJsonItem(keyEndToEndSession(deviceKey, sessionId), sessionInfo);
         });
     }
 
-    async storeEndToEndSessionProblem(deviceKey: string, type: string, fixed: boolean): Promise<void> {
+    public async storeEndToEndSessionProblem(deviceKey: string, type: string, fixed: boolean): Promise<void> {
         const key = keyEndToEndSessionProblems(deviceKey);
-        const problems = ((await this._getJsonItem(key)) || []) as IProblem[];
+        const problems = ((await this.getJsonItem(key)) || []) as IProblem[];
         problems.push({ type, fixed, time: Date.now() });
         problems.sort((a, b) => a.time - b.time);
-        await this._setJsonItem(key, problems);
+        await this.setJsonItem(key, problems);
     }
 
-    async getEndToEndSessionProblem(deviceKey: string, timestamp: number): Promise<IProblem | null> {
+    public async getEndToEndSessionProblem(deviceKey: string, timestamp: number): Promise<IProblem | null> {
         const key = keyEndToEndSessionProblems(deviceKey);
-        const problems = ((await this._getJsonItem(key)) || []) as IProblem[];
+        const problems = ((await this.getJsonItem(key)) || []) as IProblem[];
         if (!problems.length) {
             return null;
         }
@@ -400,9 +405,10 @@ export default class AsyncCryptoStore implements CryptoStore {
         }
     }
 
-    async filterOutNotifiedErrorDevices(devices: IOlmDevice<DeviceInfo>[]): Promise<IOlmDevice<DeviceInfo>[]> {
-        const notifiedErrorDevices: { [userId: string]: { [deviceId: string]: boolean } } =
-            (await this._getJsonItem(KEY_NOTIFIED_ERROR_DEVICES)) || {};
+    public async filterOutNotifiedErrorDevices(devices: IOlmDevice<DeviceInfo>[]): Promise<IOlmDevice<DeviceInfo>[]> {
+        const notifiedErrorDevices = ((await this.getJsonItem(KEY_NOTIFIED_ERROR_DEVICES)) || {}) as {
+            [userId: string]: { [deviceId: string]: boolean };
+        };
 
         const ret = [];
 
@@ -419,18 +425,18 @@ export default class AsyncCryptoStore implements CryptoStore {
             }
         }
 
-        await this._setJsonItem(KEY_NOTIFIED_ERROR_DEVICES, notifiedErrorDevices);
+        await this.setJsonItem(KEY_NOTIFIED_ERROR_DEVICES, notifiedErrorDevices);
 
         return ret;
     }
 
-    async getEndToEndSessionsBatch(): Promise<ISessionInfo[] | null> {
+    public async getEndToEndSessionsBatch(): Promise<ISessionInfo[] | null> {
         const keys = (await this.storage.getAllKeys()).filter((k) => k.startsWith(END_TO_END_SESSION_PREFIX));
 
         const result: ISessionInfo[] = [];
 
         for (const k of keys) {
-            const session: ISessionInfo | null = await this._getJsonItem(k);
+            const session = (await this.getJsonItem(k)) as ISessionInfo | null;
             if (!session) {
                 console.error(`Could not find session ${k}`);
                 continue;
@@ -450,7 +456,7 @@ export default class AsyncCryptoStore implements CryptoStore {
         return result; // We found fewer sessions than the batch size
     }
 
-    async deleteEndToEndSessionsBatch(
+    public async deleteEndToEndSessionsBatch(
         sessions: { deviceKey?: string | undefined; sessionId?: string | undefined }[],
     ): Promise<void> {
         for (const { deviceKey, sessionId } of sessions) {
@@ -461,24 +467,24 @@ export default class AsyncCryptoStore implements CryptoStore {
         }
     }
 
-    getEndToEndInboundGroupSession(
+    public getEndToEndInboundGroupSession(
         senderCurve25519Key: string,
         sessionId: string,
         txn: unknown,
         func: (groupSession: InboundGroupSessionData | null, groupSessionWithheld: IWithheld | null) => void,
     ): void {
         (txn as Transaction).execute(async () => {
-            const groupSession: InboundGroupSessionData | null = await this._getJsonItem(
+            const groupSession = (await this.getJsonItem(
                 keyEndToEndInboundGroupSession(senderCurve25519Key, sessionId),
-            );
-            const groupSessionWithheld: IWithheld | null = await this._getJsonItem(
+            )) as InboundGroupSessionData | null;
+            const groupSessionWithheld = (await this.getJsonItem(
                 keyEndToEndInboundGroupSessionWithheld(senderCurve25519Key, sessionId),
-            );
+            )) as IWithheld | null;
             func(groupSession, groupSessionWithheld);
         });
     }
 
-    getAllEndToEndInboundGroupSessions(txn: unknown, func: (session: ISession | null) => void): void {
+    public getAllEndToEndInboundGroupSessions(txn: unknown, func: (session: ISession | null) => void): void {
         (txn as Transaction).execute(async () => {
             const keys = (await this.storage.getAllKeys()).filter((k) => k.startsWith(INBOUND_SESSION_PREFIX));
 
@@ -486,7 +492,7 @@ export default class AsyncCryptoStore implements CryptoStore {
                 const keyParts = k.split("/");
                 const senderKey = decodeURIComponent(keyParts[1]);
                 const sessionId = decodeURIComponent(keyParts[2]);
-                const sessionData = await this._getJsonItem(k);
+                const sessionData = (await this.getJsonItem(k)) as InboundGroupSessionData;
                 func({
                     senderKey,
                     sessionId,
@@ -498,50 +504,47 @@ export default class AsyncCryptoStore implements CryptoStore {
         });
     }
 
-    addEndToEndInboundGroupSession(
+    public addEndToEndInboundGroupSession(
         senderCurve25519Key: string,
         sessionId: string,
         sessionData: InboundGroupSessionData,
         txn: unknown,
     ): void {
         (txn as Transaction).execute(async () => {
-            const existing = await this._getJsonItem(keyEndToEndInboundGroupSession(senderCurve25519Key, sessionId));
+            const existing = await this.getJsonItem(keyEndToEndInboundGroupSession(senderCurve25519Key, sessionId));
             if (!existing) {
                 await this.storeEndToEndInboundGroupSession(senderCurve25519Key, sessionId, sessionData, txn);
             }
         });
     }
 
-    storeEndToEndInboundGroupSession(
+    public storeEndToEndInboundGroupSession(
         senderCurve25519Key: string,
         sessionId: string,
         sessionData: InboundGroupSessionData,
         txn: unknown,
     ): void {
         (txn as Transaction).execute(async () => {
-            await this._setJsonItem(keyEndToEndInboundGroupSession(senderCurve25519Key, sessionId), sessionData);
+            await this.setJsonItem(keyEndToEndInboundGroupSession(senderCurve25519Key, sessionId), sessionData);
         });
     }
 
-    storeEndToEndInboundGroupSessionWithheld(
+    public storeEndToEndInboundGroupSessionWithheld(
         senderCurve25519Key: string,
         sessionId: string,
         sessionData: IWithheld,
         txn: unknown,
     ): void {
         (txn as Transaction).execute(async () => {
-            await this._setJsonItem(
-                keyEndToEndInboundGroupSessionWithheld(senderCurve25519Key, sessionId),
-                sessionData,
-            );
+            await this.setJsonItem(keyEndToEndInboundGroupSessionWithheld(senderCurve25519Key, sessionId), sessionData);
         });
     }
 
-    async countEndToEndInboundGroupSessions(): Promise<number> {
+    public async countEndToEndInboundGroupSessions(): Promise<number> {
         return (await this.storage.getAllKeys()).filter((k) => k.startsWith(INBOUND_SESSION_PREFIX)).length;
     }
 
-    async getEndToEndInboundGroupSessionsBatch(): Promise<SessionExtended[] | null> {
+    public async getEndToEndInboundGroupSessionsBatch(): Promise<SessionExtended[] | null> {
         const keys = (await this.storage.getAllKeys()).filter((k) => k.startsWith(INBOUND_SESSION_PREFIX));
 
         const result: SessionExtended[] = [];
@@ -550,7 +553,7 @@ export default class AsyncCryptoStore implements CryptoStore {
             const keyParts = k.split("/");
             const senderKey = decodeURIComponent(keyParts[1]);
             const sessionId = decodeURIComponent(keyParts[2]);
-            const sessionData = await this._getJsonItem(k);
+            const sessionData = (await this.getJsonItem(k)) as InboundGroupSessionData;
 
             result.push({
                 senderKey,
@@ -571,45 +574,48 @@ export default class AsyncCryptoStore implements CryptoStore {
         return result; // We found fewer sessions than the batch size
     }
 
-    async deleteEndToEndInboundGroupSessionsBatch(sessions: { senderKey: string; sessionId: string }[]): Promise<void> {
+    public async deleteEndToEndInboundGroupSessionsBatch(
+        sessions: { senderKey: string; sessionId: string }[],
+    ): Promise<void> {
         for (const { senderKey, sessionId } of sessions) {
             await this.storage.removeItem(keyEndToEndInboundGroupSession(senderKey, sessionId));
         }
     }
 
-    getEndToEndDeviceData(txn: unknown, func: (deviceData: IDeviceData | null) => void): void {
+    public getEndToEndDeviceData(txn: unknown, func: (deviceData: IDeviceData | null) => void): void {
         (txn as Transaction).execute(async () => {
-            func(await this._getJsonItem(KEY_DEVICE_DATA));
+            func((await this.getJsonItem(KEY_DEVICE_DATA)) as IDeviceData | null);
         });
     }
 
-    storeEndToEndDeviceData(deviceData: IDeviceData, txn: unknown): void {
+    public storeEndToEndDeviceData(deviceData: IDeviceData, txn: unknown): void {
         (txn as Transaction).execute(async () => {
-            await this._setJsonItem(KEY_DEVICE_DATA, deviceData);
+            await this.setJsonItem(KEY_DEVICE_DATA, deviceData);
         });
     }
 
-    storeEndToEndRoom(roomId: string, roomInfo: IRoomEncryption, txn: unknown): void {
+    public storeEndToEndRoom(roomId: string, roomInfo: IRoomEncryption, txn: unknown): void {
         (txn as Transaction).execute(async () => {
-            await this._setJsonItem(keyEndToEndRoom(roomId), roomInfo);
+            await this.setJsonItem(keyEndToEndRoom(roomId), roomInfo);
         });
     }
 
-    getEndToEndRooms(txn: unknown, func: (rooms: Record<string, IRoomEncryption>) => void): void {
+    public getEndToEndRooms(txn: unknown, func: (rooms: Record<string, IRoomEncryption>) => void): void {
         (txn as Transaction).execute(async () => {
             const keys = (await this.storage.getAllKeys()).filter((k) => k.startsWith(ROOMS_PREFIX));
             const result: Record<string, IRoomEncryption> = {};
             for (const k of keys) {
                 const roomId = k.slice(ROOMS_PREFIX.length);
-                result[roomId] = await this._getJsonItem(k);
+                result[roomId] = (await this.getJsonItem(k)) as IRoomEncryption;
             }
             func(result);
         });
     }
 
-    async getSessionsNeedingBackup(limit: number): Promise<ISession[]> {
-        const sessionsNeedingBackup: { [sessionKey: string]: boolean } =
-            (await this._getJsonItem(KEY_SESSIONS_NEEDING_BACKUP)) || {};
+    public async getSessionsNeedingBackup(limit: number): Promise<ISession[]> {
+        const sessionsNeedingBackup = ((await this.getJsonItem(KEY_SESSIONS_NEEDING_BACKUP)) || {}) as {
+            [sessionKey: string]: boolean;
+        };
         const sessions: ISession[] = [];
 
         for (const k of Object.keys(sessionsNeedingBackup)) {
@@ -617,9 +623,9 @@ export default class AsyncCryptoStore implements CryptoStore {
             const senderKey = decodeURIComponent(keyParts[0]);
             const sessionId = decodeURIComponent(keyParts[1]);
 
-            const sessionData: InboundGroupSessionData | null = await this._getJsonItem(
+            const sessionData = (await this.getJsonItem(
                 keyEndToEndInboundGroupSession(senderKey, sessionId),
-            );
+            )) as InboundGroupSessionData | null;
             if (!sessionData) {
                 console.error(`Could not find session data for inbound group session with ${sessionId}`);
                 continue;
@@ -635,37 +641,40 @@ export default class AsyncCryptoStore implements CryptoStore {
         return sessions;
     }
 
-    async countSessionsNeedingBackup(txn?: unknown): Promise<number> {
+    public async countSessionsNeedingBackup(txn?: unknown): Promise<number> {
         // TODO: How to handle txn here?
-        const sessionsNeedingBackup: { [sessionKey: string]: boolean } =
-            (await this._getJsonItem(KEY_SESSIONS_NEEDING_BACKUP)) || {};
+        const sessionsNeedingBackup = ((await this.getJsonItem(KEY_SESSIONS_NEEDING_BACKUP)) || {}) as {
+            [sessionKey: string]: boolean;
+        };
         return Object.keys(sessionsNeedingBackup).length;
     }
 
-    async unmarkSessionsNeedingBackup(sessions: ISession[], txn?: unknown): Promise<void> {
+    public async unmarkSessionsNeedingBackup(sessions: ISession[], txn?: unknown): Promise<void> {
         // TODO: How to handle txn here?
-        const sessionsNeedingBackup: { [sessionKey: string]: boolean } =
-            (await this._getJsonItem(KEY_SESSIONS_NEEDING_BACKUP)) || {};
+        const sessionsNeedingBackup = ((await this.getJsonItem(KEY_SESSIONS_NEEDING_BACKUP)) || {}) as {
+            [sessionKey: string]: boolean;
+        };
         for (const session of sessions) {
             delete sessionsNeedingBackup[
                 encodeURIComponent(session.senderKey) + "/" + encodeURIComponent(session.sessionId)
             ];
         }
-        await this._setJsonItem(KEY_SESSIONS_NEEDING_BACKUP, sessionsNeedingBackup);
+        await this.setJsonItem(KEY_SESSIONS_NEEDING_BACKUP, sessionsNeedingBackup);
     }
 
-    async markSessionsNeedingBackup(sessions: ISession[], txn?: unknown): Promise<void> {
+    public async markSessionsNeedingBackup(sessions: ISession[], txn?: unknown): Promise<void> {
         // TODO: How to handle txn here?
-        const sessionsNeedingBackup: { [sessionKey: string]: boolean } =
-            (await this._getJsonItem(KEY_SESSIONS_NEEDING_BACKUP)) || {};
+        const sessionsNeedingBackup = ((await this.getJsonItem(KEY_SESSIONS_NEEDING_BACKUP)) || {}) as {
+            [sessionKey: string]: boolean;
+        };
         for (const session of sessions) {
             sessionsNeedingBackup[encodeURIComponent(session.senderKey) + "/" + encodeURIComponent(session.sessionId)] =
                 true;
         }
-        await this._setJsonItem(KEY_SESSIONS_NEEDING_BACKUP, sessionsNeedingBackup);
+        await this.setJsonItem(KEY_SESSIONS_NEEDING_BACKUP, sessionsNeedingBackup);
     }
 
-    async addSharedHistoryInboundGroupSession(
+    public async addSharedHistoryInboundGroupSession(
         roomId: string,
         senderKey: string,
         sessionId: string,
@@ -673,37 +682,44 @@ export default class AsyncCryptoStore implements CryptoStore {
     ): Promise<void> {
         // TODO: How to handle txn here?
         const key = keySharedHistoryInboundGroupSessions(roomId);
-        const sessions: [senderKey: string, sessionId: string][] = (await this._getJsonItem(key)) ?? [];
+        const sessions = ((await this.getJsonItem(key)) ?? []) as [senderKey: string, sessionId: string][];
         sessions.push([senderKey, sessionId]);
-        await this._setJsonItem(key, sessions);
+        await this.setJsonItem(key, sessions);
     }
 
-    async getSharedHistoryInboundGroupSessions(
+    public async getSharedHistoryInboundGroupSessions(
         roomId: string,
         txn?: unknown,
     ): Promise<[senderKey: string, sessionId: string][]> {
         // TODO: How to handle txn here?
-        const sessions: [senderKey: string, sessionId: string][] =
-            (await this._getJsonItem(keySharedHistoryInboundGroupSessions(roomId))) ?? [];
+        const sessions = ((await this.getJsonItem(keySharedHistoryInboundGroupSessions(roomId))) ?? []) as [
+            senderKey: string,
+            sessionId: string,
+        ][];
         return sessions;
     }
 
-    async addParkedSharedHistory(roomId: string, data: ParkedSharedHistory, txn?: unknown): Promise<void> {
+    public async addParkedSharedHistory(roomId: string, data: ParkedSharedHistory, txn?: unknown): Promise<void> {
         // TODO: How to handle txn here?
-        const parked: ParkedSharedHistory[] = (await this._getJsonItem(keyParkedSharedHistory(roomId))) ?? [];
+        const parked = ((await this.getJsonItem(keyParkedSharedHistory(roomId))) ?? []) as ParkedSharedHistory[];
         parked.push(data);
-        await this._setJsonItem(keyParkedSharedHistory(roomId), parked);
+        await this.setJsonItem(keyParkedSharedHistory(roomId), parked);
     }
 
-    async takeParkedSharedHistory(roomId: string, txn?: unknown): Promise<ParkedSharedHistory[]> {
+    public async takeParkedSharedHistory(roomId: string, txn?: unknown): Promise<ParkedSharedHistory[]> {
         // TODO: How to handle txn here?
         const key = keyParkedSharedHistory(roomId);
-        const parked: ParkedSharedHistory[] = (await this._getJsonItem(key)) ?? [];
+        const parked = ((await this.getJsonItem(key)) ?? []) as ParkedSharedHistory[];
         await this.storage.removeItem(key);
         return parked;
     }
 
-    doTxn<T>(mode: Mode, stores: Iterable<string>, func: (txn: unknown) => T, log?: Logger | undefined): Promise<T> {
+    public doTxn<T>(
+        mode: Mode,
+        stores: Iterable<string>,
+        func: (txn: unknown) => T,
+        log?: Logger | undefined,
+    ): Promise<T> {
         const txn = new Transaction();
         const promise = txn.getPromise();
         const result = func(txn);

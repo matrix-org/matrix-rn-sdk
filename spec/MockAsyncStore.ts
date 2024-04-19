@@ -19,24 +19,24 @@ import AsyncStore from "../src/AsyncStore";
 export default class MockAsyncStore implements AsyncStore {
     private data = new Map<string, string>();
 
-    clear() {
+    public clear(): void {
         this.data.clear();
     }
 
-    async getAllKeys(): Promise<string[]> {
+    public async getAllKeys(): Promise<string[]> {
         return [...this.data.keys()];
     }
 
-    async getItem(key: string): Promise<string | null> {
+    public async getItem(key: string): Promise<string | null> {
         const item = this.data.get(key);
         return item === undefined ? null : item;
     }
 
-    async setItem(key: string, value: string) {
+    public async setItem(key: string, value: string): Promise<void> {
         this.data.set(key, value);
     }
 
-    async removeItem(key: string) {
+    public async removeItem(key: string): Promise<void> {
         this.data.delete(key);
     }
 }

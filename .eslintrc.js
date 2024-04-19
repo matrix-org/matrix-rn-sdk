@@ -12,5 +12,11 @@ module.exports = {
             typescript: true,
             node: true,
         },
-    }
+    },
+    overrides: [
+        {
+            files: ["**/*.ts"],
+            extends: ["plugin:matrix-org/typescript"],
+        },
+    ],
 };
