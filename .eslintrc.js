@@ -1,8 +1,22 @@
 module.exports = {
-    env: {
-        "node": true,
+    plugins: ["matrix-org", "import"],
+    extends: ["plugin:matrix-org/babel", "plugin:matrix-org/jest", "plugin:import/typescript"],
+    parserOptions: {
+        project: ["./tsconfig.json"],
     },
-    extends: [
-        "matrix-org",
-    ]
+    env: {
+        node: true,
+    },
+    settings: {
+        "import/resolver": {
+            typescript: true,
+            node: true,
+        },
+    },
+    overrides: [
+        {
+            files: ["**/*.ts"],
+            extends: ["plugin:matrix-org/typescript"],
+        },
+    ],
 };

@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Matrix.org Foundation C.I.C.
+Copyright 2024 The Matrix.org Foundation C.I.C.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,17 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import * as matrixcs from 'matrix-js-sdk/lib/matrix';
-import request from 'request';
-import AsyncCryptoStore from './AsyncCryptoStore';
-
-import AsyncStorage from '@react-native-community/async-storage';
-
-matrixcs.request(request);
-
-matrixcs.setCryptoStoreFactory(() => {
-    return new AsyncCryptoStore(AsyncStorage);
-});
-
-export * from 'matrix-js-sdk/lib/matrix';
-export default matrixcs;
+export default interface AsyncStore {
+    getAllKeys: () => Promise<string[]>;
+    getItem: (key: string) => Promise<string | null>;
+    setItem: (key: string, value: string) => Promise<void>;
+    removeItem: (key: string) => Promise<void>;
+}

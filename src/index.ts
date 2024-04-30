@@ -14,30 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-let data = {};
+import * as matrixcs from "matrix-js-sdk/lib/matrix";
+import AsyncStorage from "@react-native-community/async-storage";
 
-class MockAsyncStore {
-    static clear() {
-        data = {};
-    }
+import AsyncCryptoStore from "./AsyncCryptoStore";
 
-    static setItem(k, v) {
-        data[k] = v;
-        return Promise.resolve();
-    }
+matrixcs.setCryptoStoreFactory(() => {
+    return new AsyncCryptoStore(AsyncStorage);
+});
 
-    static getItem(k) {
-        return Promise.resolve(data[k] || null);
-    }
-
-    static getAllKeys() {
-        return Promise.resolve(Object.keys(data));
-    }
-
-    static removeItem(k) {
-        delete data[k];
-        return Promise.resolve();
-    }
-}
-
-module.exports = MockAsyncStore;
+export * from "matrix-js-sdk/lib/matrix";
+export default matrixcs;
