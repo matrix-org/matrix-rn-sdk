@@ -19,7 +19,22 @@ import AsyncStorage from "@react-native-community/async-storage";
 
 import AsyncCryptoStore from "./AsyncCryptoStore";
 
+import setGlobalVars from 'indexeddbshim/dist/indexeddbshim-noninvasive';
+
+/**
+ * Make IndexedDB available via shimming
+ * @param {WindowDatabase} backend - The database backend to use, e.g. as imported from react-native-sqlite-2
+ */
+export function shimIndexedDB(backend: WindowDatabase) {
+    setGlobalVars(window, { checkOrigin: false, win: backend });
+}
+
 matrixcs.setCryptoStoreFactory(() => {
+    if (window.indexedDB) {
+        console.log("Found IndexedDB. Creating IndexedDBCryptoStore.")
+        return new matrixcs.IndexedDBCryptoStore(window.indexedDB, "crypto");
+    }
+    console.warn("IndexedDB not available. Falling back to built-in crypto store.")
     return new AsyncCryptoStore(AsyncStorage);
 });
 
