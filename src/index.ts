@@ -16,27 +16,29 @@ limitations under the License.
 
 import * as matrixcs from "matrix-js-sdk/lib/matrix";
 import AsyncStorage from "@react-native-community/async-storage";
+import setGlobalVars from "indexeddbshim/dist/indexeddbshim-noninvasive";
 
 import AsyncCryptoStore from "./AsyncCryptoStore";
 
-import setGlobalVars from 'indexeddbshim/dist/indexeddbshim-noninvasive';
-
-/**
- * Make IndexedDB available via shimming
- * @param {WindowDatabase} backend - The database backend to use, e.g. as imported from react-native-sqlite-2
- */
-export function shimIndexedDB(backend: WindowDatabase) {
-    setGlobalVars(window, { checkOrigin: false, win: backend });
-}
-
 matrixcs.setCryptoStoreFactory(() => {
-    if (window.indexedDB) {
-        console.log("Found IndexedDB. Creating IndexedDBCryptoStore.")
-        return new matrixcs.IndexedDBCryptoStore(window.indexedDB, "crypto");
-    }
-    console.warn("IndexedDB not available. Falling back to built-in crypto store.")
+    console.warn("IndexedDB not available. Falling back to built-in crypto store.");
     return new AsyncCryptoStore(AsyncStorage);
 });
+
+/**
+ * Shim IndexedDB and make IndexedDBCryptoStore the default crypto store
+ * @param {WindowDatabase} backend - The database backend to use, e.g. as imported from react-native-sqlite-2
+ */
+export function shimIndexedDB(backend: WindowDatabase): void {
+    /* eslint-disable @typescript-eslint/no-explicit-any */
+    const idb: any = {};
+    setGlobalVars(idb, { checkOrigin: false, win: backend });
+
+    matrixcs.setCryptoStoreFactory(() => {
+        console.log("Found IndexedDB. Creating IndexedDBCryptoStore.");
+        return new matrixcs.IndexedDBCryptoStore(idb.indexedDB, "crypto");
+    });
+}
 
 export * from "matrix-js-sdk/lib/matrix";
 export default matrixcs;
