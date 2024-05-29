@@ -1,0 +1,42 @@
+name: Pull Request
+on:
+    pull_request: {}
+
+jobs:
+    tests:
+        name: "Tests"
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Node
+              id: setupNode
+              uses: actions/setup-node@v4
+              with:
+                  cache: yarn
+
+            - name: Install dependencies
+              run: yarn install
+
+            - name: Run tests
+              run: yarn test
+
+    lint:
+        name: "Lint"
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Node
+              id: setupNode
+              uses: actions/setup-node@v4
+              with:
+                  cache: yarn
+
+            - name: Install dependencies
+              run: yarn install
+
+            - name: Run lint
+              run: yarn lint
