@@ -16,6 +16,8 @@
     },
     "dependencies": {
         "@react-native-community/async-storage": "^1.11.0",
+        "@types/websql": "^0.0.30",
+        "indexeddbshim": "^13.0.0",
         "matrix-js-sdk": "^32.0.0"
     },
     "devDependencies": {
